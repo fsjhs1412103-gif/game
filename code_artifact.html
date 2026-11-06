@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《故事骰子：浮空創世紀》| 官方遊戲展示與敘事平台</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js for 3D Background & Physical Interactive Dice -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Noto+Sans+TC:wght@300;400;600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        title: ['Cinzel', '"Noto Sans TC"', 'serif'],
+                        tech: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            gold: '#d97706',
+                            goldLight: '#fef08a',
+                            sky: '#0284c7',
+                            purple: '#9333ea',
+                            lightBg: '#f8fafc',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        /* Light Theme Glassmorphism */
+        .light-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.15), 0 8px 10px -6px rgba(148, 163, 184, 0.1);
+        }
+
+        .light-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .light-card-hover:hover {
+            transform: translateY(-6px);
+            border-color: rgba(217, 119, 6, 0.5);
+            box-shadow: 0 20px 30px -10px rgba(14, 165, 233, 0.25);
+        }
+
+        /* Hero Light Gradient Glow */
+        .hero-glow-light {
+            background: radial-gradient(circle at 50% 30%, rgba(254, 240, 138, 0.4) 0%, rgba(186, 230, 253, 0.35) 40%, transparent 75%);
+        }
+
+        /* 3D Dice Stage Styling */
+        #threeDiceCanvasStage {
+            width: 100%;
+            height: 280px;
+            cursor: pointer;
+            border-radius: 1.5rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-amber-400 selection:text-slate-900">
+
+    <!-- Navigation Bar -->
+    <nav class="fixed top-0 left-0 w-full z-50 light-card border-b border-slate-200/80 py-4 px-6 md:px-12 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl filter drop-shadow">🎲</span>
+            <span class="font-title text-lg md:text-xl font-bold tracking-wider text-amber-600">AETHERIA <span class="text-sky-600">GENESIS</span></span>
+        </div>
+        <div class="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wider text-slate-600">
+            <a href="#features" class="hover:text-amber-600 transition flex items-center gap-1.5"><i class="fa-solid fa-dice-d6 text-amber-500"></i> 遊戲特色</a>
+            <a href="#evolution" class="hover:text-amber-600 transition flex items-center gap-1.5"><i class="fa-solid fa-timeline text-sky-500"></i> 開發歷程</a>
+            <a href="#platform" class="hover:text-amber-600 transition flex items-center gap-1.5"><i class="fa-solid fa-cubes text-purple-500"></i> 平台系統</a>
+            <a href="#demo" class="hover:text-amber-600 transition flex items-center gap-1.5"><i class="fa-solid fa-gamepad text-emerald-500"></i> 實機體驗</a>
+        </div>
+        <a href="#demo" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-bold px-5 py-2 rounded-full text-xs transition transform hover:scale-105 shadow-md shadow-amber-500/20 flex items-center gap-2">
+            <i class="fa-solid fa-play"></i> 立即遊玩
+        </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen pt-28 pb-16 px-6 md:px-12 flex flex-col justify-center items-center text-center hero-glow-light overflow-hidden">
+        
+        <!-- Interactive 3D Canvas Background for Floating Dice -->
+        <div id="diceCanvas3D" class="absolute inset-0 pointer-events-none z-0 opacity-70"></div>
+
+        <!-- Floating Decorative Emojis -->
+        <div class="absolute top-1/4 left-12 text-5xl opacity-40 animate-bounce delay-100 hidden lg:block select-none">🎲</div>
+        <div class="absolute bottom-1/3 right-16 text-6xl opacity-40 animate-bounce delay-700 hidden lg:block select-none">⚔️</div>
+        <div class="absolute top-1/3 right-1/4 text-4xl opacity-40 animate-pulse hidden lg:block select-none">🔮</div>
+        <div class="absolute bottom-1/4 left-1/4 text-5xl opacity-40 animate-bounce delay-300 hidden lg:block select-none">🏰</div>
+
+        <!-- Main Heading Badge -->
+        <div class="relative z-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/90 border border-amber-300 text-amber-900 text-xs font-bold mb-6 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+            <span>🎲 互動式 3D 故事骰子敘事引擎現已開啓</span>
+        </div>
+
+        <!-- Game Title -->
+        <h1 class="relative z-10 font-title text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-4">
+            故事骰子：<span class="bg-gradient-to-r from-amber-500 via-sky-600 to-purple-600 bg-clip-text text-transparent">浮空創世紀</span>
+        </h1>
+        <p class="relative z-10 font-tech text-xs sm:text-sm tracking-widest text-sky-700 uppercase mb-6 font-bold">Aetheria Genesis: Roll the Story</p>
+
+        <!-- Brief Intro -->
+        <p class="relative z-10 max-w-2xl text-slate-600 text-sm sm:text-base leading-relaxed mb-8 font-medium">
+            擲下浮空光芒骰子，解鎖上千種表情、動作、物品與地點組合！搭配 <span class="text-amber-600 font-bold">智慧故事速編</span> 與 <span class="text-sky-600 font-bold">AI 深度創世引擎</span>，讓每一次擲骰都轉化為專屬於你的傳奇故事。
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="relative z-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-12">
+            <a href="#demo" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-extrabold text-sm px-8 py-4 rounded-2xl shadow-lg shadow-amber-500/20 transition transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-dice-d20 text-lg"></i>
+                <span>開啟線上實機體驗 (Start Game)</span>
+            </a>
+            <a href="#features" class="light-card hover:bg-white text-slate-700 font-bold text-sm px-8 py-4 rounded-2xl border border-slate-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-compass text-sky-600"></i>
+                <span>探索特色 (Explore Features)</span>
+            </a>
+        </div>
+
+        <!-- Hero Preview Banner Image Card -->
+        <div class="relative z-10 w-full max-w-4xl group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 via-sky-400 to-purple-400 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+            <div class="relative light-card p-2 rounded-3xl overflow-hidden border border-slate-200/80 shadow-2xl">
+                <!-- Using Generated Cover Image URL -->
+                <img src="watermarked_img_8035770672241796933.jpg" alt="故事骰子：浮空創世紀 封面" class="w-full h-auto rounded-2xl shadow-md object-cover transform group-hover:scale-[1.01] transition duration-500">
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Key Features Section -->
+    <section id="features" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+        
+        <div class="text-center space-y-3 mb-16">
+            <h2 class="text-xs font-tech tracking-widest text-sky-600 uppercase font-bold"><i class="fa-solid fa-cube"></i> CORE MECHANICS</h2>
+            <h3 class="font-title text-3xl md:text-4xl font-bold text-slate-900">🎲 四大核心故事骰子特色</h3>
+            <div class="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <!-- Feature 1 -->
+            <div class="light-card light-card-hover p-6 rounded-2xl space-y-4">
+                <div class="w-14 h-14 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-3xl shadow-sm">
+                    🎲
+                </div>
+                <h4 class="text-lg font-bold text-slate-900">3D 物理擬真骰子</h4>
+                <ul class="text-xs text-slate-600 space-y-2 font-medium">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 1 ~ 6 顆骰子數量自由切換</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 獨家 3D 空間滾動動畫</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 支援單顆骰子點擊重擲</li>
+                </ul>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="light-card light-card-hover p-6 rounded-2xl space-y-4">
+                <div class="w-14 h-14 rounded-2xl bg-sky-100 border border-sky-300 flex items-center justify-center text-3xl shadow-sm">
+                    ✨
+                </div>
+                <h4 class="text-lg font-bold text-slate-900">四大主題與六面元素</h4>
+                <ul class="text-xs text-slate-600 space-y-2 font-medium">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 🏰 童話冒險 / 🚀 科幻探索</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 🕵️ 偵探懸疑 / 🏫 溫馨日常</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 表情/動作/物品/地點/氣氛/夥伴</li>
+                </ul>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="light-card light-card-hover p-6 rounded-2xl space-y-4">
+                <div class="w-14 h-14 rounded-2xl bg-purple-100 border border-purple-300 flex items-center justify-center text-3xl shadow-sm">
+                    📜
+                </div>
+                <h4 class="text-lg font-bold text-slate-900">智慧速編生成引擎</h4>
+                <ul class="text-xs text-slate-600 space-y-2 font-medium">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 一鍵匯入骰子圖示生成全文</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 自然語言敘事與連接詞算法</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 完全免 API Key、即開即玩</li>
+                </ul>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="light-card light-card-hover p-6 rounded-2xl space-y-4">
+                <div class="w-14 h-14 rounded-2xl bg-rose-100 border border-rose-300 flex items-center justify-center text-3xl shadow-sm">
+                    🤖
+                </div>
+                <h4 class="text-lg font-bold text-slate-900">AI 深度創世生成</h4>
+                <ul class="text-xs text-slate-600 space-y-2 font-medium">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 支援 OpenAI GPT 模型驅動</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 自動撰寫豐富角色與故事情節</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 本地 Key 安全保護隱私</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Development Evolution Journey (TimeLine) Section -->
+    <section id="evolution" class="py-20 px-6 md:px-12 bg-slate-100/60 border-y border-slate-200">
+        <div class="max-w-6xl mx-auto space-y-16">
+            
+            <div class="text-center space-y-3">
+                <h2 class="text-xs font-tech tracking-widest text-amber-600 uppercase font-bold"><i class="fa-solid fa-code-branch"></i> DEVELOPMENT JOURNEY</h2>
+                <h3 class="font-title text-3xl md:text-4xl font-bold text-slate-900">🎲 故事骰子進化歷程</h3>
+                <p class="text-slate-600 text-xs sm:text-sm font-medium">從簡單的 3D 骰子，進化為整合 AI 生成的一頁式敘事平台</p>
+            </div>
+
+            <!-- Visual Timeline Grid -->
+            <div class="relative border-l-2 border-amber-300 ml-4 md:ml-32 space-y-12">
+                
+                <!-- Stage 1 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[17px] top-0 w-8 h-8 rounded-full bg-white border-2 border-amber-500 flex items-center justify-center text-xs shadow-sm">
+                        1️⃣
+                    </div>
+                    <div class="light-card light-card-hover p-6 rounded-2xl space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-tech text-amber-600 font-bold">Phase 1.0</span>
+                            <span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-bold"><i class="fa-solid fa-cubes"></i> 原型開發</span>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-900">3D 視覺骰子與六面互動</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">設計出包含表情、動作、物品等類別的 3D 翻轉骰子，支援點擊單顆重擲與簡單記事本記錄。</p>
+                    </div>
+                </div>
+
+                <!-- Stage 2 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[17px] top-0 w-8 h-8 rounded-full bg-white border-2 border-sky-500 flex items-center justify-center text-xs shadow-sm">
+                        2️⃣
+                    </div>
+                    <div class="light-card light-card-hover p-6 rounded-2xl space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-tech text-sky-600 font-bold">Phase 2.0</span>
+                            <span class="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-2.5 py-1 rounded-full font-bold"><i class="fa-solid fa-layer-group"></i> 題庫與體驗擴充</span>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-900">四大主題庫與自訂骰子數量</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">擴充童話、科幻、偵探、日常四大主題庫，並提供 1~6 顆骰子自由切換與填空引導範本。</p>
+                    </div>
+                </div>
+
+                <!-- Stage 3 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[17px] top-0 w-8 h-8 rounded-full bg-white border-2 border-purple-500 flex items-center justify-center text-xs shadow-sm">
+                        3️⃣
+                    </div>
+                    <div class="light-card light-card-hover p-6 rounded-2xl space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-tech text-purple-600 font-bold">Phase 3.0</span>
+                            <span class="text-[10px] bg-purple-50 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-full font-bold"><i class="fa-solid fa-robot"></i> 智慧生成</span>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-900">自動匯入元素與雙引擎故事生成</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">實現「擲出直接自動生成故事」功能，同時提供「算法速編模式」與「OpenAI GPT 深度模式」。</p>
+                    </div>
+                </div>
+
+                <!-- Stage 4 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[17px] top-0 w-8 h-8 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center text-xs shadow-sm">
+                        4️⃣
+                    </div>
+                    <div class="light-card light-card-hover p-6 rounded-2xl space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-tech text-emerald-600 font-bold">Phase 4.0</span>
+                            <span class="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold"><i class="fa-solid fa-globe"></i> 官網生態</span>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-900">一頁式亮色官網展示平台</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">打造全方位清新明亮展演網頁《浮空創世紀》，整合 3D 浮空骰子、歷程展示與實機體驗導覽。</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Platform & Ecosystem Section -->
+    <section id="platform" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+        <div class="text-center space-y-3 mb-16">
+            <h2 class="text-xs font-tech tracking-widest text-purple-600 uppercase font-bold"><i class="fa-solid fa-network-wired"></i> ECOSYSTEM & PLATFORM</h2>
+            <h3 class="font-title text-3xl md:text-4xl font-bold text-slate-900">🎲 遊戲平台與技術架構</h3>
+            <div class="w-16 h-1 bg-purple-500 mx-auto rounded-full"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- Platform Card 1 -->
+            <div class="light-card p-8 rounded-3xl space-y-4 text-center border-t-4 border-t-amber-500 shadow-sm">
+                <div class="text-4xl">🌐</div>
+                <h4 class="text-lg font-bold text-slate-900">跨平台 Web 網頁版</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">免安裝下載，開啟瀏覽器即可順暢執行。響應式佈局，不論電腦、平板或手機都能流暢玩。</p>
+                <div class="pt-2 flex justify-center gap-3 text-xl text-slate-500">
+                    <i class="fa-brands fa-chrome hover:text-amber-500 transition"></i>
+                    <i class="fa-brands fa-safari hover:text-amber-500 transition"></i>
+                    <i class="fa-brands fa-firefox hover:text-amber-500 transition"></i>
+                    <i class="fa-brands fa-edge hover:text-amber-500 transition"></i>
+                </div>
+            </div>
+
+            <!-- Platform Card 2 -->
+            <div class="light-card p-8 rounded-3xl space-y-4 text-center border-t-4 border-t-sky-500 shadow-sm">
+                <div class="text-4xl">⚡</div>
+                <h4 class="text-lg font-bold text-slate-900">輕量化技術架構</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">採用單一 HTML 檔案封裝，內建 Tailwind CSS、Three.js 3D 渲染與 FontAwesome，載入極速。</p>
+                <div class="pt-2 flex justify-center gap-2 text-xs font-tech text-sky-700">
+                    <span class="bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-md font-bold">HTML5</span>
+                    <span class="bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-md font-bold">Tailwind</span>
+                    <span class="bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-md font-bold">Three.js</span>
+                </div>
+            </div>
+
+            <!-- Platform Card 3 -->
+            <div class="light-card p-8 rounded-3xl space-y-4 text-center border-t-4 border-t-purple-500 shadow-sm">
+                <div class="text-4xl">🔑</div>
+                <h4 class="text-lg font-bold text-slate-900">AI 大模型自由串接</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">提供 OpenAI API 金鑰彈性設定，可在前端本地儲存，保障使用者隱私與靈感安全性。</p>
+                <div class="pt-2 flex justify-center gap-2 text-xs font-tech text-purple-700">
+                    <span class="bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-md font-bold">GPT-4o</span>
+                    <span class="bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-md font-bold">Local Storage</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Live Interactive Preview Showcase -->
+    <section id="demo" class="py-20 px-6 md:px-12 bg-slate-100/80 border-t border-slate-200">
+        <div class="max-w-5xl mx-auto light-card p-6 sm:p-10 rounded-3xl border border-amber-300/50 space-y-6 relative overflow-hidden shadow-xl">
+            
+            <div class="text-center space-y-2 relative z-10">
+                <span class="text-4xl">🎲</span>
+                <h2 class="font-title text-2xl sm:text-3xl font-extrabold text-slate-900">線上實機故事骰子體驗</h2>
+                <p class="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto font-medium">
+                    直接在下方擲骰子，並點擊「匯入元素直接生成故事」開始創作！
+                </p>
+            </div>
+
+            <!-- Embedded Live Game Container -->
+            <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-5">
+                
+                <!-- Controls -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500">主題:</span>
+                        <select id="interactiveTheme" onchange="rollInteractiveDice()" class="text-xs bg-slate-100 border border-slate-300 font-bold text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <option value="🏰 童話冒險">🏰 童話冒險</option>
+                            <option value="🚀 科幻探索">🚀 科幻探索</option>
+                            <option value="🕵️ 偵探懸疑">🕵️ 偵探懸疑</option>
+                            <option value="🏫 溫馨日常">🏫 溫馨日常</option>
+                        </select>
+                    </div>
+
+                    <button id="rollDiceBtn" onclick="rollInteractiveDice()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md hover:shadow-amber-500/20 active:scale-95 transition flex items-center gap-2">
+                        <i class="fa-solid fa-dice-d20 text-sm"></i>
+                        <span>重新擲骰 (Roll Dice)</span>
+                    </button>
+                </div>
+
+                <!-- Interactive Dice Results Cards -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center space-y-4 shadow-sm">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-dice text-amber-500"></i> 當前 Three.js 3D 實體骰子舞台（點擊畫布或按鈕進行拋擲旋轉）
+                        </span>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-extrabold px-3 py-1 rounded-full">🎲 真實 3D 幾何骰子</span>
+                    </div>
+                    
+                    <!-- Three.js Real 3D Physical Interactive Dice Stage Container -->
+                    <div class="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                        <div id="threeDiceCanvasStage"></div>
+                        <div class="absolute bottom-2 right-3 text-[11px] text-slate-400 font-bold pointer-events-none bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
+                            <i class="fa-solid fa-hand-pointer text-amber-500"></i> 點擊任何一顆 3D 骰子即可獨立滾動重擲
+                        </div>
+                    </div>
+
+                    <!-- Dice Elements Tag Summary -->
+                    <div id="diceTagsSummary" class="flex flex-wrap justify-center gap-2 pt-2">
+                        <!-- Dynamic Tags populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Story Generator Action Buttons & Result Box (Added Back) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="generateInteractiveStory()" class="flex-1 bg-gradient-to-r from-amber-500 via-sky-600 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white font-extrabold text-sm py-3 px-5 rounded-xl shadow-md hover:shadow-amber-500/20 active:scale-98 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>匯入元素直接生成故事 (Generate Story)</span>
+                        </button>
+                    </div>
+
+                    <!-- Story Output Card -->
+                    <div class="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center text-xs text-slate-500 font-bold border-b border-slate-200 pb-2">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-book-open text-purple-500"></i> 生成的故事結果：</span>
+                            <button onclick="navigator.clipboard.writeText(document.getElementById('interactiveStoryOutput').innerText); alert('已複製故事！');" class="hover:text-purple-600 text-[11px] font-semibold text-slate-400">
+                                <i class="fa-solid fa-copy"></i> 複製故事
+                            </button>
+                        </div>
+                        <div id="interactiveStoryOutput" class="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium pt-1">
+                            按下「重新擲骰」並點擊上方的「匯入元素直接生成故事」，系統將為您自動組合情節！
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D Background Dice Generator & Interactive Three.js Dice Script -->
+    <script>
+        // --- Interactive 3D Physics Dice Stage Powered by Three.js ---
+        const diceCategories = [
+            { cat: '表情', items: [{ icon: '😱', text: '驚恐' }, { icon: '😃', text: '開心' }, { icon: '🥺', text: '求助' }, { icon: '😡', text: '憤怒' }, { icon: '😴', text: '沉睡' }] },
+            { cat: '動作', items: [{ icon: '⚔️', text: '決鬥' }, { icon: '🏃', text: '奔跑' }, { icon: '🔍', text: '搜尋' }, { icon: '🪄', text: '施法' }, { icon: '🐉', text: '馴服' }] },
+            { cat: '物品', items: [{ icon: '🗝️', text: '神秘鑰匙' }, { icon: '📜', text: '古老地圖' }, { icon: '💎', text: '魔法寶石' }, { icon: '🧪', text: '變身藥水' }, { icon: '🛡️', text: '騎士盾牌' }] },
+            { cat: '地點', items: [{ icon: '🏰', text: '古老城堡' }, { icon: '🌲', text: '迷霧森林' }, { icon: '🚀', text: '太空站' }, { icon: '🏫', text: '陽光教室' }, { icon: '🌋', text: '烈焰火山' }] },
+            { cat: '氣氛', items: [{ icon: '🌙', text: '月黑風高' }, { icon: '⚡', text: '狂風暴雷' }, { icon: '☀️', text: '陽光燦爛' }, { icon: '🌧️', text: '傾盆大雨' }, { icon: '❄️', text: '嚴寒冰雪' }] },
+            { cat: '夥伴', items: [{ icon: '🦄', text: '獨角獸' }, { icon: '🤖', text: '機器人' }, { icon: '🐈‍⬛', text: '靈性黑貓' }, { icon: '🐶', text: '活潑柴犬' }, { icon: '🦅', text: '神聖巨鷹' }] }
+        ];
+
+        let currentRolled = [];
+        let stageScene, stageCamera, stageRenderer;
+        let diceMeshes = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+
+        function createDiceTexture(catText) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // White Background with subtle gradient
+            const grad = ctx.createLinearGradient(0, 0, 256, 256);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(1, '#f8fafc');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Orange Border
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 14;
+            ctx.strokeRect(7, 7, 242, 242);
+
+            // Dice Corner Dots
+            ctx.fillStyle = '#ea580c';
+            const dotR = 12;
+            ctx.beginPath(); ctx.arc(36, 36, dotR, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(220, 36, dotR, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(36, 220, dotR, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(220, 220, dotR, 0, Math.PI * 2); ctx.fill();
+
+            // Text Label
+            ctx.fillStyle = '#9a3412';
+            ctx.font = 'bold 36px "Noto Sans TC", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(catText, 128, 128);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function initThreeDiceStage() {
+            const container = document.getElementById('threeDiceCanvasStage');
+            if (!container) return;
+
+            const w = container.clientWidth;
+            const h = container.clientHeight || 280;
+
+            stageScene = new THREE.Scene();
+            stageCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+            stageCamera.position.set(0, 0, 14);
+
+            stageRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            stageRenderer.setSize(w, h);
+            stageRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(stageRenderer.domElement);
+
+            // Stage Lights
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+            stageScene.add(ambLight);
+
+            const dirLight = new THREE.DirectionalLight(0xf59e0b, 1.2);
+            dirLight.position.set(5, 10, 10);
+            stageScene.add(dirLight);
+
+            // Create 6 3D Cube Dice
+            const cubeGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+            const startX = -5.0;
+            const stepX = 2.0;
+
+            diceMeshes = [];
+            for (let i = 0; i < 6; i++) {
+                const texture = createDiceTexture(diceCategories[i].cat);
+                const mat = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    roughness: 0.2,
+                    metalness: 0.1
+                });
+
+                const cube = new THREE.Mesh(cubeGeo, mat);
+                cube.position.set(startX + i * stepX, 0, 0);
+                cube.userData = { id: i, rolling: false, targetRotX: 0, targetRotY: 0, currentRotX: 0, currentRotY: 0 };
+                stageScene.add(cube);
+                diceMeshes.push(cube);
+            }
+
+            // Click listener for single dice roll
+            container.addEventListener('click', (e) => {
+                const rect = container.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, stageCamera);
+                const intersects = raycaster.intersectObjects(diceMeshes);
+
+                if (intersects.length > 0) {
+                    const clickedDice = intersects[0].object;
+                    rollSingle3DDice(clickedDice.userData.id);
+                }
+            });
+
+            animateStage();
+            rollInteractiveDice();
+        }
+
+        function animateStage() {
+            requestAnimationFrame(animateStage);
+
+            diceMeshes.forEach(cube => {
+                if (cube.userData.rolling) {
+                    // Smoothly Lerp Rotation for rolling physics
+                    cube.rotation.x += 0.25;
+                    cube.rotation.y += 0.3;
+                    cube.position.y = Math.sin(Date.now() * 0.015) * 0.8;
+                } else {
+                    // Idle floating gently
+                    cube.rotation.x += 0.005;
+                    cube.rotation.y += 0.008;
+                    cube.position.y = Math.sin(Date.now() * 0.003 + cube.userData.id) * 0.15;
+                }
+            });
+
+            if (stageRenderer && stageScene && stageCamera) {
+                stageRenderer.render(stageScene, stageCamera);
+            }
+        }
+
+        function rollInteractiveDice() {
+            currentRolled = [];
+            diceCategories.forEach((catObj, index) => {
+                const randomItem = catObj.items[Math.floor(Math.random() * catObj.items.length)];
+                currentRolled.push({ icon: randomItem.icon, text: randomItem.text, cat: catObj.cat });
+
+                if (diceMeshes[index]) {
+                    const cube = diceMeshes[index];
+                    cube.userData.rolling = true;
+
+                    setTimeout(() => {
+                        cube.userData.rolling = false;
+                        cube.rotation.set(
+                            Math.floor(Math.random() * 4) * Math.PI / 2,
+                            Math.floor(Math.random() * 4) * Math.PI / 2,
+                            0
+                        );
+                        updateTagsSummary();
+                    }, 1000 + index * 100);
+                }
+            });
+        }
+
+        function rollSingle3DDice(index) {
+            const catObj = diceCategories[index];
+            const randomItem = catObj.items[Math.floor(Math.random() * catObj.items.length)];
+            currentRolled[index] = { icon: randomItem.icon, text: randomItem.text, cat: catObj.cat };
+
+            const cube = diceMeshes[index];
+            if (cube) {
+                cube.userData.rolling = true;
+                setTimeout(() => {
+                    cube.userData.rolling = false;
+                    cube.rotation.set(
+                        Math.floor(Math.random() * 4) * Math.PI / 2,
+                        Math.floor(Math.random() * 4) * Math.PI / 2,
+                        0
+                    );
+                    updateTagsSummary();
+                }, 1000);
+            }
+        }
+
+        function updateTagsSummary() {
+            const summaryBox = document.getElementById('diceTagsSummary');
+            if (!summaryBox) return;
+            summaryBox.innerHTML = '';
+
+            currentRolled.forEach(item => {
+                const tag = document.createElement('div');
+                tag.className = 'inline-flex items-center gap-1.5 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs';
+                tag.innerHTML = `
+                    <span class="text-sm">${item.icon}</span>
+                    <span>${item.text}</span>
+                    <span class="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-extrabold">${item.cat}</span>
+                `;
+                summaryBox.appendChild(tag);
+            });
+        }
+
+        function generateInteractiveStory() {
+            if (currentRolled.length === 0) rollInteractiveDice();
+
+            const theme = document.getElementById('interactiveTheme').value;
+            const [emo, act, item, loc, weather, partner] = currentRolled;
+
+            const story = `【${theme}冒險】在一個${weather.icon} <span class="font-bold text-amber-600">${weather.text}</span> 的日子，主角與夥伴 ${partner.icon} <span class="font-bold text-sky-600">${partner.text}</span> 一同來到了 ${loc.icon} <span class="font-bold text-indigo-600">${loc.text}</span>。<br><br>突然間，面前出現了傳說中的 ${item.icon} <span class="font-bold text-emerald-600">${item.text}</span>！主角露出 ${emo.icon} <span class="font-bold text-amber-600">${emo.text}</span> 的神情，隨即毫不猶豫地開始 ${act.icon} <span class="font-bold text-purple-600">${act.text}</span>，展開了一段驚險又精彩的傳奇冒險！`;
+
+            document.getElementById('interactiveStoryOutput').innerHTML = story;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThreeDiceStage();
+        });
+    </script>
+
+    <!-- Footer Section -->
+    <footer class="py-12 px-6 md:px-12 light-card border-t border-slate-200 text-center text-xs text-slate-500 space-y-4">
+        <div class="flex justify-center items-center gap-2 text-amber-600 font-title font-bold text-sm">
+            <span>🎲 AETHERIA GENESIS</span>
+        </div>
+        <p>© 2026 故事骰子：浮空創世紀 Interactive Story Game. All Rights Reserved.</p>
+        <p class="text-[10px] text-slate-400">Built with HTML5, Tailwind CSS, Three.js & FontAwesome.</p>
+    </footer>
+
+</body>
+</html>
